@@ -1,6 +1,6 @@
 HapiER
 ======
-Hapi Enterprise Resources (HapiER): A [hapi](hapijs.com)-based RESTful API for [OpenERP](openerp.com).
+Hapi Enterprise Resources (HapiER): A [hapi](http://hapijs.com)-based RESTful API for [OpenERP](http://openerp.com).
 
 Installation
 ------------
