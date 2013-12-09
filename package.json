@@ -1,0 +1,17 @@
+{
+  "name": "hapier",
+  "version": "0.0.1",
+  "description": "Hapi Enterprise Resources (HapiER): A REST API for OpenERP.",
+  "main": "app.js",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "author": "Brian Dunnette <brian@dunnette.us>",
+  "license": "MIT",
+  "dependencies": {
+    "hapi": "~1.20.0",
+    "openerp": "~0.1.0",
+    "openobject": "~0.1.0",
+    "xmlrpc": "~1.1.1"
+  }
+}
