@@ -3,7 +3,7 @@ var xmlrpc = require('xmlrpc');
 
 var database = 'test';
 var username = 'admin';
-var password = 'admin';
+var password = 'test';
 var uid = false;
 
 var client_common = xmlrpc.createClient({ host: 'localhost', port: 8069, path: '/xmlrpc/common'});
@@ -21,7 +21,15 @@ var client = xmlrpc.createClient({ host: 'localhost', port: 8069, path: '/xmlrpc
 //    connections (using 0.0.0.0) and the PORT environment variable must be
 //    converted to a Number.
 //
-var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000);
+var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000, {'cors': true});
+
+
+server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
+
+    if (err) {
+        console.log('Failed loading plugins');
+    }
+});
 
 //
 // Simulate an external module which is the correct way to expose this
@@ -34,8 +42,7 @@ employeeController.getConfig = {
     client.methodCall('execute', [database, 1, password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         // Results of the method response
         console.log(error);
-        console.log('Method response for \'anAction\': ' + employeeIDs);
-        fields = ['name', 'id', 'state'];
+        fields = ['name', 'id', 'state', 'image_small'];
         client.methodCall('execute', [database, 1, password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); req.reply(data);});
     });
   }
