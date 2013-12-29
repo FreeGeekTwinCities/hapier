@@ -1,9 +1,14 @@
-var Hapi = require('hapi');
-var xmlrpc = require('xmlrpc');
+var Hapi = require('hapi')
+  , xmlrpc = require('xmlrpc')
+  , ini = require('ini')
+  , fs = require('fs')
 
-var database = 'test';
-var username = 'admin';
-var password = 'test';
+var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'))
+console.log(config);
+
+var database = config.database.database;
+var username = config.database.user;
+var password = config.database.password;
 var uid = false;
 
 var client_common = xmlrpc.createClient({ host: 'localhost', port: 8069, path: '/xmlrpc/common'});
