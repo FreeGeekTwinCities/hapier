@@ -6,26 +6,25 @@ var Hapi = require('hapi')
 var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'))
 console.log(config);
 
-var database = config.database.database;
-var username = config.database.user;
-var password = config.database.password;
-var uid = false;
+var erp_host = config.openerp.host
+  , erp_port = config.openerp.port
+  , erp_db = config.openerp.database
+  , erp_user = config.openerp.user
+  , erp_password = config.openerp.password
+  , erp_uid = false
 
-var client_common = xmlrpc.createClient({ host: 'localhost', port: 8069, path: '/xmlrpc/common'});
-client_common.methodCall('login', [database, username, password], function (error, value) {
+// First, we'll connect to the 'common' endpoint to log in to OpenERP
+var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
+
+client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
     console.log(error + value);
-    uid = value;
+    erp_uid = value;
 });
 
-var client = xmlrpc.createClient({ host: 'localhost', port: 8069, path: '/xmlrpc/object'});
+// Second, once we're logged in, we'll create a connection to access actual objects (employees/volunteers, timesheets, sales, etc.)
+var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/object'});
 
-//
-// The `createServer` factory method accepts the host name and port as the first
-//    two parameters.
-// When hosting on a PaaS provider, the host must be configured to allow all
-//    connections (using 0.0.0.0) and the PORT environment variable must be
-//    converted to a Number.
-//
+// Finally, we'll configure our API server
 var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000, {'cors': true});
 
 
@@ -44,11 +43,11 @@ var employeeController = {};
 
 employeeController.getConfig = {
   handler: function(req) {
-    client.methodCall('execute', [database, 1, password, 'hr.employee', 'search', []], function (error, employeeIDs) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         // Results of the method response
         console.log(error);
         fields = ['name', 'id', 'state', 'image_small'];
-        client.methodCall('execute', [database, 1, password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); req.reply(data);});
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); req.reply(data);});
     });
   }
 };
