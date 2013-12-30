@@ -9,10 +9,10 @@
   "author": "Brian Dunnette <brian@dunnette.us>",
   "license": "MIT",
   "dependencies": {
-    "hapi": "~1.20.0",
+    "ini": "~1.1.0",
+    "handlebars": "~1.0.12",
     "xmlrpc": "~1.1.1",
-    "lout": "~0.5.0",
-    "handlebars": "~1.1.2",
-    "ini": "~1.1.0"
+    "hapi": "1.20.x",
+    "lout": "0.5.x"
   }
 }
