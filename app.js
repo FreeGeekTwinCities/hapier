@@ -17,8 +17,11 @@ var erp_host = config.openerp.host
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
 
 client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
-    console.log(error + value);
-    erp_uid = value;
+    if (error) {console.log(error);}
+    else {
+        console.log('Logged in user #' + value);
+        erp_uid = value;
+    };
 });
 
 // Second, once we're logged in, we'll create a connection to access actual objects (employees/volunteers, timesheets, sales, etc.)
@@ -35,22 +38,24 @@ server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
     }
 });
 
-//
-// Simulate an external module which is the correct way to expose this
-//    kind of functionality.
-//
-var employeeController = {};
+function getEmployees(request) {
 
-employeeController.getConfig = {
-  handler: function(req) {
+    // First, run a search to get a list of all employee IDs
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
-        // Results of the method response
         console.log(error);
+        // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
         fields = ['name', 'id', 'state', 'image_small'];
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); req.reply(data);});
+        // Finally, we'll actually get the employee info, replying with our data
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); request.reply(data);});
     });
-  }
-};
+
+}
+
+function getEmployee(request) {
+    fields = ['name', 'id', 'state', 'image_small'];
+    console.log(request.params.id);
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', request.params.id, fields], function (error, data) {console.log(data); request.reply(data);});
+}
 
 //
 // Route configuration.
@@ -58,7 +63,8 @@ employeeController.getConfig = {
 //
 
 var routes = [
-    { path: '/employee', method: 'GET', config: employeeController.getConfig }
+    { path: '/employees', method: 'GET', config: {handler: getEmployees} },
+    { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} }
 ];
 
 server.addRoutes(routes);
