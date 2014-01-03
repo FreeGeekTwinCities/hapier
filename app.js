@@ -3,7 +3,7 @@ var Hapi = require('hapi')
   , ini = require('ini')
   , fs = require('fs')
 
-var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'))
+var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
 console.log(config);
 
 var erp_host = config.openerp.host
@@ -11,13 +11,13 @@ var erp_host = config.openerp.host
   , erp_db = config.openerp.database
   , erp_user = config.openerp.user
   , erp_password = config.openerp.password
-  , erp_uid = false
+  , erp_uid = false;
 
 // First, we'll connect to the 'common' endpoint to log in to OpenERP
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
 
 client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
-    if (error) {console.log(error);}
+    if (error) { console.log(error); }
     else {
         console.log('Logged in user #' + value);
         erp_uid = value;
@@ -44,7 +44,7 @@ function getEmployees(request) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         console.log(error);
         // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
-        fields = ['name', 'id', 'state', 'image_small'];
+        var fields = ['name', 'id', 'state', 'image_small'];
         // Finally, we'll actually get the employee info, replying with our data
         client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); request.reply(data);});
     });
@@ -52,9 +52,27 @@ function getEmployees(request) {
 }
 
 function getEmployee(request) {
-    fields = ['name', 'id', 'state', 'image_small'];
+    var fields = ['name', 'id', 'state', 'image_small'];
     console.log(request.params.id);
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', request.params.id, fields], function (error, data) {console.log(data); request.reply(data);});
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', request.params.id, fields], function (error, data) {
+        console.log(data); 
+        request.reply(data); 
+    });
+}
+
+function getTimesheets(request) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', []], function (error, timesheetIDs) {
+        console.log(error);
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'read', timesheetIDs], function (error, data) {console.log(data); request.reply(data);});
+    });
+}
+
+function getProducts(request) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'search', []], function (error, productIDs) {
+        console.log(error);
+        var fields = ['name', 'list_price'];
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'read', productIDs, fields], function (error, data) {console.log(data); request.reply(data);});
+    });
 }
 
 //
@@ -64,7 +82,9 @@ function getEmployee(request) {
 
 var routes = [
     { path: '/employees', method: 'GET', config: {handler: getEmployees} },
-    { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} }
+    { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} },
+    { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
+    { path: '/products', method: 'GET', config: {handler: getProducts} }
 ];
 
 server.addRoutes(routes);
