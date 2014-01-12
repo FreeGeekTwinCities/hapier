@@ -28,7 +28,7 @@ client_common.methodCall('login', [erp_db, erp_user, erp_password], function (er
 var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/object'});
 
 // Finally, we'll configure our API server
-var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000, {'cors': true});
+var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000, {'cors': true, 'json': {'space': 2}});
 
 
 server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
@@ -60,6 +60,16 @@ function getEmployee(request) {
     });
 }
 
+function createEmployee(request) {
+    var newEmployee = new Object;
+    newEmployee.name = request.payload.name;
+    newEmployee.work_email = request.payload.email;
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
+        console.log(error);
+        request.reply(employeeID);
+    }); 
+}
+
 function getTimesheets(request) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', []], function (error, timesheetIDs) {
         console.log(error);
@@ -70,10 +80,26 @@ function getTimesheets(request) {
 function getProducts(request) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'search', []], function (error, productIDs) {
         console.log(error);
-        var fields = ['name', 'list_price'];
+        var fields = ['code', 'name', 'price', 'standard_price', 'list_price', 'active', 'sale_ok', 'taxes_id'];
+        //var fields = [];
         client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'read', productIDs, fields], function (error, data) {console.log(data); request.reply(data);});
     });
 }
+
+function getTaxes(request) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'account.tax', 'search', []], function (error, taxIDs) {
+        console.log(error);
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'account.tax', 'read', taxIDs], function (error, data) {console.log(data); request.reply(data);});
+    });
+}
+
+function getCompanies(request) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.company', 'search', []], function (error, companyIDs) {
+        console.log(error);
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.company', 'read', companyIDs], function (error, data) {console.log(data); request.reply(data);});
+    });
+}
+
 
 //
 // Route configuration.
@@ -82,8 +108,11 @@ function getProducts(request) {
 
 var routes = [
     { path: '/employees', method: 'GET', config: {handler: getEmployees} },
+    { path: '/employees', method: 'POST', config: {handler: createEmployee} },
     { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} },
     { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
+    { path: '/taxes', method: 'GET', config: {handler: getTaxes} },
+    { path: '/company', method: 'GET', config: {handler: getCompanies} },
     { path: '/products', method: 'GET', config: {handler: getProducts} }
 ];
 
