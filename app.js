@@ -108,7 +108,12 @@ function getCompanies(request) {
 
 var routes = [
     { path: '/employees', method: 'GET', config: {handler: getEmployees} },
-    { path: '/employees', method: 'POST', config: {handler: createEmployee} },
+    { path: '/employees', method: 'POST', config: {handler: createEmployee, validate: {
+        payload: {
+            name: Hapi.types.String().required(),
+            email: Hapi.types.String().email().optional()
+        }
+    }} },
     { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} },
     { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
     { path: '/taxes', method: 'GET', config: {handler: getTaxes} },

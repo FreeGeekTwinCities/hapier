@@ -8,6 +8,11 @@
   },
   "author": "Brian Dunnette <brian@dunnette.us>",
   "license": "MIT",
+  "repository" :
+  { "type" : "git"
+    , "url" : "http://github.com/bdunnette/hapier.git"
+  },
+
   "dependencies": {
     "ini": "~1.1.0",
     "handlebars": "~1.0.12",
