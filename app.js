@@ -100,6 +100,12 @@ function getCompanies(request) {
     });
 }
 
+function getDepartments(request) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.department', 'search', []], function (error, departmentIDs) {
+        console.log(error);
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.department', 'read', departmentIDs, fields], function (error, data) {console.log(data);  request.reply(data);});
+    });
+}
 
 //
 // Route configuration.
@@ -118,7 +124,8 @@ var routes = [
     { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
     { path: '/taxes', method: 'GET', config: {handler: getTaxes} },
     { path: '/company', method: 'GET', config: {handler: getCompanies} },
-    { path: '/products', method: 'GET', config: {handler: getProducts} }
+    { path: '/products', method: 'GET', config: {handler: getProducts} },
+    { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
 server.addRoutes(routes);
