@@ -38,15 +38,25 @@ server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
     }
 });
 
+var openerpRead = function (model, recordIds, fields, next) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, model, 'read', recordIds, fields], function (error, data) {
+        //console.log(data);
+        next(data);
+    });
+};
+
+server.helper('erpRead', openerpRead);
+
 function getEmployees(request, reply) {
 
     // First, run a search to get a list of all employee IDs
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
-        console.log(error);
         // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
         var fields = ['name', 'id', 'state', 'image_small'];
         // Finally, we'll actually get the employee info, replying with our data
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); reply(data);});
+        server.helpers.erpRead('hr.employee', employeeIDs, fields, function (data) {
+            reply(data);
+        });
     });
 
 }
@@ -54,13 +64,13 @@ function getEmployees(request, reply) {
 function getEmployee(request, reply) {
     var fields = ['name', 'id', 'state', 'image_small'];
     console.log(request.params.id);
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', request.params.id, fields], function (error, data) {
+    server.helpers.erpRead('hr.employee', request.params.id, fields, function (data) {
         console.log(data); 
         reply(data); 
     });
 }
 
-function createEmployee(request) {
+function createEmployee(request, reply) {
     var newEmployee = new Object;
     newEmployee.name = request.payload.name;
     newEmployee.work_email = request.payload.email;
@@ -70,26 +80,31 @@ function createEmployee(request) {
     }); 
 }
 
-function getTimesheets(request) {
+function getTimesheets(request, reply) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', []], function (error, timesheetIDs) {
         console.log(error);
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'read', timesheetIDs], function (error, data) {console.log(data); request.reply(data);});
+        server.helpers.erpRead('hr_timesheet_sheet.sheet', timesheetIDs, [], function (data) {
+            reply(data);
+        });
     });
 }
 
-function getProducts(request) {
+function getProducts(request, reply) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'search', []], function (error, productIDs) {
         console.log(error);
         var fields = ['code', 'name', 'price', 'standard_price', 'list_price', 'active', 'sale_ok', 'taxes_id'];
-        //var fields = [];
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'read', productIDs, fields], function (error, data) {console.log(data); request.reply(data);});
+        server.helpers.erpRead('product.product', productIDs, fields, function (data) {
+            reply(data);
+        });
     });
 }
 
-function getTaxes(request) {
+function getTaxes(request, reply) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'account.tax', 'search', []], function (error, taxIDs) {
         console.log(error);
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'account.tax', 'read', taxIDs], function (error, data) {console.log(data); request.reply(data);});
+        server.helpers.erpRead('account.tax', taxIDs, [], function (data) {
+            reply(data);
+        });
     });
 }
 
