@@ -38,7 +38,7 @@ server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
     }
 });
 
-function getEmployees(request) {
+function getEmployees(request, reply) {
 
     // First, run a search to get a list of all employee IDs
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
@@ -46,17 +46,17 @@ function getEmployees(request) {
         // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
         var fields = ['name', 'id', 'state', 'image_small'];
         // Finally, we'll actually get the employee info, replying with our data
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); request.reply(data);});
+        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', employeeIDs, fields], function (error, data) {console.log(data); reply(data);});
     });
 
 }
 
-function getEmployee(request) {
+function getEmployee(request, reply) {
     var fields = ['name', 'id', 'state', 'image_small'];
     console.log(request.params.id);
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'read', request.params.id, fields], function (error, data) {
         console.log(data); 
-        request.reply(data); 
+        reply(data); 
     });
 }
 
@@ -128,6 +128,6 @@ var routes = [
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
-server.addRoutes(routes);
+server.route(routes);
 
 server.start();
