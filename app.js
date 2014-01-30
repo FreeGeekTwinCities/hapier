@@ -11,7 +11,8 @@ var erp_host = config.openerp.host
   , erp_db = config.openerp.database
   , erp_user = config.openerp.user
   , erp_password = config.openerp.password
-  , erp_uid = false;
+  , erp_uid = false
+  , employee_fields = ['name', 'id', 'state', 'image_small'];
 
 // First, we'll connect to the 'common' endpoint to log in to OpenERP
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
@@ -47,9 +48,41 @@ var openerpRead = function (model, recordIds, fields, next) {
 
 server.helper('erpRead', openerpRead);
 
-function getEmployees(request, reply) {
+var openerpReadAll = function (model, fields, next) {
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, model, 'search', fields], function (error, recordIds) {
+        console.log(error);
+        server.helpers.erpRead(model, recordIds, fields, function (data) {
+            next(data);
+        });
+    });
+};
 
-    // First, run a search to get a list of all employee IDs
+server.helper('erpReadAll', openerpReadAll);
+
+var getCurrentTimesheet = function (employeeId, next) {
+    var today = new Date();
+    var today_str = [today.getFullYear(), today.getMonth() + 1, today.getDate()].join('-');
+    var search_args = [['employee_id', '=', employeeId], ['date_from', '=', today_str]];
+    console.log(search_args);
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', search_args], function (error, recordIds) {
+        console.log(error);
+        if (recordIds.length > 0) {
+            next([recordIds[0]]);
+        } else {
+            var newTimesheet = new Object;
+            newTimesheet.date_from = today_str;
+            newTimesheet.employee_id = employeeId;
+            client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'create', newTimesheet], function (error, recordId) {
+                console.log(error);
+                next([recordId]);
+            });
+        }
+    });
+};
+
+function getEmployees(request, reply) {
+    // erpReadAll doesn't seem to work with employee records, giving an "Invalid leaf name" error when fields are specified, so we'll fall back to using the more verbose method. Shmeh. --bdunnette 20140130
+    // First, run a search to get a list of all employee IDs 
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
         var fields = ['name', 'id', 'state', 'image_small'];
@@ -62,10 +95,7 @@ function getEmployees(request, reply) {
 }
 
 function getEmployee(request, reply) {
-    var fields = ['name', 'id', 'state', 'image_small'];
-    console.log(request.params.id);
-    server.helpers.erpRead('hr.employee', request.params.id, fields, function (data) {
-        console.log(data); 
+    server.helpers.erpRead('hr.employee', request.params.id, employee_fields, function (data) {
         reply(data); 
     });
 }
@@ -76,49 +106,37 @@ function createEmployee(request, reply) {
     newEmployee.work_email = request.payload.email;
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
         console.log(error);
-        request.reply(employeeID);
+        reply(employeeID);
     }); 
 }
 
+function signInEmployee(request, reply) {
+    var employeeId = Number(request.payload.employeeId);
+    getCurrentTimesheet(employeeId, function (data) {
+        reply(data);
+    });
+}
+
+function signOutEmployee(request, reply) {
+    console.log(request.payload);
+    reply(request.payload.employeeId);
+}
+
 function getTimesheets(request, reply) {
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', []], function (error, timesheetIDs) {
-        console.log(error);
-        server.helpers.erpRead('hr_timesheet_sheet.sheet', timesheetIDs, [], function (data) {
-            reply(data);
-        });
+    server.helpers.erpReadAll('hr_timesheet_sheet.sheet', [], function (data) {
+        reply(data);
     });
 }
 
-function getProducts(request, reply) {
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'product.product', 'search', []], function (error, productIDs) {
-        console.log(error);
-        var fields = ['code', 'name', 'price', 'standard_price', 'list_price', 'active', 'sale_ok', 'taxes_id'];
-        server.helpers.erpRead('product.product', productIDs, fields, function (data) {
-            reply(data);
-        });
+function getCompanies(request, reply) {
+    server.helpers.erpReadAll('res.company', [], function (data) {
+        reply(data);
     });
 }
 
-function getTaxes(request, reply) {
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'account.tax', 'search', []], function (error, taxIDs) {
-        console.log(error);
-        server.helpers.erpRead('account.tax', taxIDs, [], function (data) {
-            reply(data);
-        });
-    });
-}
-
-function getCompanies(request) {
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.company', 'search', []], function (error, companyIDs) {
-        console.log(error);
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.company', 'read', companyIDs], function (error, data) {console.log(data); request.reply(data);});
-    });
-}
-
-function getDepartments(request) {
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.department', 'search', []], function (error, departmentIDs) {
-        console.log(error);
-        client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.department', 'read', departmentIDs, fields], function (error, data) {console.log(data);  request.reply(data);});
+function getDepartments(request, reply) {
+    server.helpers.erpReadAll('hr.department', [], function (data) {
+        reply(data);
     });
 }
 
@@ -129,17 +147,35 @@ function getDepartments(request) {
 
 var routes = [
     { path: '/employees', method: 'GET', config: {handler: getEmployees} },
-    { path: '/employees', method: 'POST', config: {handler: createEmployee, validate: {
-        payload: {
-            name: Hapi.types.String().required(),
-            email: Hapi.types.String().email().optional()
+    { path: '/employees', method: 'POST', config: {
+        handler: createEmployee, 
+        validate: {
+            payload: {
+                name: Hapi.types.String().required(),
+                email: Hapi.types.String().email().optional()
+            }
         }
-    }} },
+    }},
     { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} },
+    { path: '/employees/sign_in', method: 'POST', config: {
+        handler: signInEmployee,
+        validate: {
+            payload: {
+                employeeId: Hapi.types.number().integer(),
+                departmentId: Hapi.types.number().integer()
+            }
+        }
+    }},
+    { path: '/employees/sign_out', method: 'POST', config: {
+        handler: signOutEmployee,
+        validate: {
+            payload: {
+                employeeId: Hapi.types.number().integer()
+            }
+        }
+    }},
     { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
-    { path: '/taxes', method: 'GET', config: {handler: getTaxes} },
-    { path: '/company', method: 'GET', config: {handler: getCompanies} },
-    { path: '/products', method: 'GET', config: {handler: getProducts} },
+    { path: '/companies', method: 'GET', config: {handler: getCompanies} },
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
