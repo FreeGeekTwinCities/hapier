@@ -161,8 +161,8 @@ var routes = [
         handler: signInEmployee,
         validate: {
             payload: {
-                employeeId: Hapi.types.number().integer(),
-                departmentId: Hapi.types.number().integer()
+                employeeId: Hapi.types.Number().integer(),
+                departmentId: Hapi.types.Number().integer()
             }
         }
     }},
@@ -170,7 +170,7 @@ var routes = [
         handler: signOutEmployee,
         validate: {
             payload: {
-                employeeId: Hapi.types.number().integer()
+                employeeId: Hapi.types.Number().integer()
             }
         }
     }},
