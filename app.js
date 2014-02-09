@@ -20,7 +20,7 @@ var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: 
 client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
     if (error) { console.log(error); }
     else {
-        console.log('Logged in user #' + value);
+        console.log('Logged in as user #' + value);
         erp_uid = value;
     };
 });
@@ -62,12 +62,15 @@ server.helper('erpReadAll', openerpReadAll);
 var getCurrentTimesheet = function (employeeId, next) {
     var today = new Date();
     var today_str = [today.getFullYear(), today.getMonth() + 1, today.getDate()].join('-');
+    // We'll search to see if there's already a timesheet for today for the specified employee
     var search_args = [['employee_id', '=', employeeId], ['date_from', '=', today_str]];
     console.log(search_args);
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', search_args], function (error, recordIds) {
         console.log(error);
+        // If there's already a timesheet, return that timesheet's ID
         if (recordIds.length > 0) {
             next([recordIds[0]]);
+        // Otherwise, create a new timesheet for the specified employee ID for today's date, then return the new timesheet's ID
         } else {
             var newTimesheet = new Object;
             newTimesheet.date_from = today_str;
@@ -112,14 +115,32 @@ function createEmployee(request, reply) {
 
 function signInEmployee(request, reply) {
     var employeeId = Number(request.payload.employeeId);
-    getCurrentTimesheet(employeeId, function (data) {
+    var currentTimesheet = getCurrentTimesheet(employeeId, function (data) {
+        /* 
+        Once we get the timesheet ID, we need to create an hr.attendance object with the following fields:
+        sheet_id: the timesheet ID from getCurrentTimesheet
+        employee_id: the supplied employeeId
+        action: 'sign_in'
+        day: Year-Month-Day (e.g. '2014-01-23')
+        name: Year-Month-Day Hour:Minute:Second (e.g. '2014-01-23 12:34:56')
+        */
         reply(data);
     });
 }
 
 function signOutEmployee(request, reply) {
-    console.log(request.payload);
-    reply(request.payload.employeeId);
+    var employeeId = Number(request.payload.employeeId);
+    var currentTimesheet = getCurrentTimesheet(employeeId, function (data) {
+        /* 
+        Once we get the timesheet ID, we need to create an hr.attendance object with the following fields:
+        sheet_id: the timesheet ID from getCurrentTimesheet
+        employee_id: the supplied employeeId
+        action: 'sign_out'
+        day: Year-Month-Day (e.g. '2014-01-23')
+        name: Year-Month-Day Hour:Minute:Second (e.g. '2014-01-23 12:34:56')
+        */
+        reply(data);
+    });
 }
 
 function getTimesheets(request, reply) {
