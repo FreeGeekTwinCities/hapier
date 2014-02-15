@@ -4,3 +4,6 @@ port = 8069
 user = admin
 password = admin
 database = test
+
+[hapier]
+port = 3000

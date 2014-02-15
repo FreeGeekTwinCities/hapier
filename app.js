@@ -4,13 +4,14 @@ var Hapi = require('hapi')
   , fs = require('fs')
 
 var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
-console.log(config);
+//console.log(config);
 
 var erp_host = config.openerp.host
   , erp_port = config.openerp.port
   , erp_db = config.openerp.database
   , erp_user = config.openerp.user
   , erp_password = config.openerp.password
+  , hapier_port = config.hapier.port
   , erp_uid = false
   , employee_fields = ['name', 'id', 'state', 'image_small'];
 
@@ -20,7 +21,7 @@ var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: 
 client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
     if (error) { console.log(error); }
     else {
-        console.log('Logged in as user #' + value);
+        console.log('Connected to OpenERP as user #' + value);
         erp_uid = value;
     };
 });
@@ -29,7 +30,8 @@ client_common.methodCall('login', [erp_db, erp_user, erp_password], function (er
 var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/object'});
 
 // Finally, we'll configure our API server
-var server = Hapi.createServer('0.0.0.0', +process.env.PORT || 3000, {'cors': true, 'json': {'space': 2}});
+console.log('Starting hapier on port ' + hapier_port);
+var server = Hapi.createServer('0.0.0.0', hapier_port, {'cors': true, 'json': {'space': 2}});
 
 
 server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
