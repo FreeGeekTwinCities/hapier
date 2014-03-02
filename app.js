@@ -33,7 +33,6 @@ var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrp
 console.log('Starting hapier on port ' + hapier_port);
 var server = Hapi.createServer('0.0.0.0', hapier_port, {'cors': true, 'json': {'space': 2}});
 
-
 server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
 
     if (err) {
@@ -106,12 +105,16 @@ function getEmployee(request, reply) {
 }
 
 function createEmployee(request, reply) {
+    console.log(request.payload);
     var newEmployee = new Object;
     newEmployee.name = request.payload.name;
     newEmployee.work_email = request.payload.email;
+    newEmployee.work_phone = request.payload.phone;
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
         console.log(error);
-        reply(employeeID);
+        server.helpers.erpRead('hr.employee', employeeID, ['name', 'id'], function (data) {
+          reply(data); 
+        });
     }); 
 }
 
@@ -175,7 +178,8 @@ var routes = [
         validate: {
             payload: {
                 name: Hapi.types.String().required(),
-                email: Hapi.types.String().email().optional()
+                email: Hapi.types.String().email().optional(),
+                phone: Hapi.types.String().optional()
             }
         }
     }},
