@@ -88,10 +88,8 @@ function getEmployees(request, reply) {
     // erpReadAll doesn't seem to work with employee records, giving an "Invalid leaf name" error when fields are specified, so we'll fall back to using the more verbose method. Shmeh. --bdunnette 20140130
     // First, run a search to get a list of all employee IDs 
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
-        // Only retrieve the fields we need (to avoid unnecessary queries/joins - thanks to @githagman!)
-        var fields = ['name', 'id', 'state', 'image_small'];
         // Finally, we'll actually get the employee info, replying with our data
-        server.helpers.erpRead('hr.employee', employeeIDs, fields, function (data) {
+        server.helpers.erpRead('hr.employee', employeeIDs, employee_fields, function (data) {
             reply(data);
         });
     });
