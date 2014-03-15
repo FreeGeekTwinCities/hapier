@@ -13,7 +13,7 @@ var erp_host = config.openerp.host
   , erp_password = config.openerp.password
   , hapier_port = config.hapier.port
   , erp_uid = false
-  , employee_fields = ['name', 'id', 'state', 'image_small'];
+  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids'];
 
 // First, we'll connect to the 'common' endpoint to log in to OpenERP
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
@@ -31,7 +31,10 @@ var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrp
 
 // Finally, we'll configure our API server
 console.log('Starting hapier on port ' + hapier_port);
-var server = Hapi.createServer('0.0.0.0', hapier_port, {'cors': true, 'json': {'space': 2}});
+var server = Hapi.createServer('0.0.0.0', hapier_port, {
+  'cors': true, 
+  'json': {'space': 2}
+});
 
 server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
 
@@ -194,6 +197,12 @@ function getDepartments(request, reply) {
     });
 }
 
+function getEmployeeCategories(request, reply) {
+    server.helpers.erpReadAll('hr.employee.category', [], function (data) {
+        reply(data);
+    });
+}
+
 //
 // Route configuration.
 // ---
@@ -201,6 +210,7 @@ function getDepartments(request, reply) {
 
 var routes = [
     { path: '/employees', method: 'GET', config: {handler: getEmployees} },
+    { path: '/employees/categories', method: 'GET', config: {handler: getEmployeeCategories} },
     { path: '/employees', method: 'POST', config: {
         handler: createEmployee, 
         validate: {
