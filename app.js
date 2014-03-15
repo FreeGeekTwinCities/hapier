@@ -113,7 +113,7 @@ function getEmployee(request, reply) {
 function createEmployee(request, reply) {
     console.log(request.payload);
     var newEmployee = new Object;
-    newEmployee.name = request.payload.name;
+    newEmployee.name = [request.payload.firstName, request.payload.lastName].join(' ');
     newEmployee.work_email = request.payload.email;
     newEmployee.work_phone = request.payload.phone;
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
@@ -215,7 +215,8 @@ var routes = [
         handler: createEmployee, 
         validate: {
             payload: {
-                name: Hapi.types.String().required(),
+                firstName: Hapi.types.String().required(),
+                lastName: Hapi.types.String().required(),
                 email: Hapi.types.String().email().optional(),
                 phone: Hapi.types.String().optional()
             }
