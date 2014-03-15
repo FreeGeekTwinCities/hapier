@@ -60,7 +60,7 @@ var openerpReadAll = function (model, fields, next) {
 
 server.helper('erpReadAll', openerpReadAll);
 
-var getCurrentTimesheet = function (employeeId, next) {
+var getCurrentTimesheet = function (employeeId, departmentId, next) {
     var today = new Date();
     var today_str = [today.getFullYear(), today.getMonth() + 1, today.getDate()].join('-');
     // We'll search to see if there's already a timesheet for today for the specified employee
@@ -70,22 +70,27 @@ var getCurrentTimesheet = function (employeeId, next) {
         console.log(error);
         // If there's already a timesheet, return that timesheet's ID
         if (recordIds.length > 0) {
-            next([recordIds[0]]);
+          server.helpers.erpRead('hr_timesheet_sheet.sheet', [recordIds[0]], '', function (data) {
+            next(data);
+          });
         // Otherwise, create a new timesheet for the specified employee ID for today's date, then return the new timesheet's ID
         } else {
             var newTimesheet = new Object;
             newTimesheet.date_from = today_str;
             newTimesheet.employee_id = employeeId;
+            newTimesheet.department_id = departmentId;
             client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'create', newTimesheet], function (error, recordId) {
                 console.log(error);
-                next([recordId]);
+                server.helpers.erpRead('hr_timesheet_sheet.sheet', recordId, '', function (data) {
+                  next(data);
+                });
             });
         }
     });
 };
 
 function getEmployees(request, reply) {
-    // erpReadAll doesn't seem to work with employee records, giving an "Invalid leaf name" error when fields are specified, so we'll fall back to using the more verbose method. Shmeh. --bdunnette 20140130
+    // erpReadAll doesn't seem to work with employee records, giving an "Invalid leaf name" error when fields are specified, so we'll fall back to a manually coded method. Shmeh. --bdunnette 20140130
     // First, run a search to get a list of all employee IDs 
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         // Finally, we'll actually get the employee info, replying with our data
@@ -118,7 +123,8 @@ function createEmployee(request, reply) {
 
 function signInEmployee(request, reply) {
     var employeeId = Number(request.payload.employeeId);
-    var currentTimesheet = getCurrentTimesheet(employeeId, function (data) {
+    var departmentId = Number(request.payload.departmentId);
+    var currentTimesheet = getCurrentTimesheet(employeeId, departmentId, function (data) {
         /* 
         Once we get the timesheet ID, we need to create an hr.attendance object with the following fields:
         sheet_id: the timesheet ID from getCurrentTimesheet
@@ -133,7 +139,7 @@ function signInEmployee(request, reply) {
 
 function signOutEmployee(request, reply) {
     var employeeId = Number(request.payload.employeeId);
-    var currentTimesheet = getCurrentTimesheet(employeeId, function (data) {
+    var currentTimesheet = getCurrentTimesheet(employeeId, 0, function (data) {
         /* 
         Once we get the timesheet ID, we need to create an hr.attendance object with the following fields:
         sheet_id: the timesheet ID from getCurrentTimesheet
