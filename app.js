@@ -13,7 +13,7 @@ var erp_host = config.openerp.host
   , erp_password = config.openerp.password
   , hapier_port = config.hapier.port
   , erp_uid = false
-  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids'];
+  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login'];
 
 // First, we'll connect to the 'common' endpoint to log in to OpenERP
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
@@ -97,7 +97,8 @@ function getEmployees(request, reply) {
     // First, run a search to get a list of all employee IDs 
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'search', []], function (error, employeeIDs) {
         // Finally, we'll actually get the employee info, replying with our data
-        server.helpers.erpRead('hr.employee', employeeIDs, employee_fields, function (data) {
+        server.helpers.erpRead('hr.employee', employeeIDs, '', function (data) {
+        //server.helpers.erpRead('hr.employee', employeeIDs, employee_fields, function (data) {
             reply(data);
         });
     });
@@ -112,16 +113,38 @@ function getEmployee(request, reply) {
 
 function createEmployee(request, reply) {
     console.log(request.payload);
-    var newEmployee = new Object;
-    newEmployee.name = [request.payload.firstName, request.payload.lastName].join(' ');
-    newEmployee.work_email = request.payload.email;
-    newEmployee.work_phone = request.payload.phone;
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
+    var fullName = [request.payload.firstName, request.payload.lastName].join(' ')
+    var newUser = new Object;
+    if (!request.payload.email) {
+      console.log("Hey, where's my email?");
+      var userName = [request.payload.firstName, request.payload.lastName].join('.').toLowerCase();
+      console.log(userName);
+      newUser.login = userName;
+    } else {
+      newUser.login = request.payload.email;
+    }
+    newUser.email = request.payload.email;
+    newUser.name = fullName;
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.users', 'create', newUser], function (error, userID) {
         console.log(error);
-        server.helpers.erpRead('hr.employee', employeeID, ['name', 'id'], function (data) {
-          reply(data); 
+        console.log(userID);
+        server.helpers.erpRead('res.users', userID, '', function (data) {
+          console.log(data);
+          var newEmployee = new Object;
+          newEmployee.name = data.name;
+          newEmployee.work_email = data.email;
+          newEmployee.work_phone = request.payload.phone;
+          newEmployee.user_id = data.id;
+          client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
+              console.log(error);
+              server.helpers.erpRead('hr.employee', employeeID, employee_fields, function (data) {
+                console.log(data);
+                reply(data); 
+              });
+          }); 
         });
-    }); 
+    });
+     
 }
 
 function signInEmployee(request, reply) {
