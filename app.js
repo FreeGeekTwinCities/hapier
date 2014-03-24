@@ -106,7 +106,7 @@ function getEmployees(request, reply) {
 }
 
 function getEmployee(request, reply) {
-    server.helpers.erpRead('hr.employee', request.params.id, employee_fields, function (data) {
+    server.helpers.erpRead('hr.employee', [request.params.id], employee_fields, function (data) {
         reply(data); 
     });
 }
