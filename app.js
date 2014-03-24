@@ -226,6 +226,34 @@ function getEmployeeCategories(request, reply) {
     });
 }
 
+function getEmployeeAttendance(request, reply) {
+    var employeeId = Number(request.params.id);
+    var attendance_ids = [];
+    var response = new Object;
+    console.log(employeeId);
+    var search_args = [['employee_id', '=', employeeId]];
+    //var search_args = '';
+    console.log(search_args);
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', search_args], function (error, recordIds) {
+        console.log(error);
+        // If there's already a timesheet, return that timesheet's ID
+        console.log(recordIds);
+        server.helpers.erpRead('hr_timesheet_sheet.sheet', recordIds, '', function (data) {
+            response.timesheets = data;
+            for (var i in data) {
+                attendance_ids = attendance_ids.concat(data[i].attendances_ids);
+                console.log(attendance_ids);
+            }
+            server.helpers.erpRead('hr.attendance', attendance_ids, '', function (data) {
+                console.log(data);
+                response.attendances = data;
+                reply(response);
+            });
+            
+        });
+    });   
+}
+
 //
 // Route configuration.
 // ---
@@ -246,6 +274,7 @@ var routes = [
         }
     }},
     { path: '/employees/{id}', method: 'GET', config: {handler: getEmployee} },
+    { path: '/employees/{id}/attendance', method: 'GET', config: {handler: getEmployeeAttendance} },
     { path: '/employees/sign_in', method: 'POST', config: {
         handler: signInEmployee,
         validate: {
