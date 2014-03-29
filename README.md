@@ -1,4 +1,4 @@
-HapiER
+HAPIER
 ======
 Humble API for Enterprise Resources: A [hapi](http://hapijs.com)-based RESTful API for [OpenERP](http://openerp.com).
 
