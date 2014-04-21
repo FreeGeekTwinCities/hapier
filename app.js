@@ -13,7 +13,8 @@ var erp_host = config.openerp.host
   , erp_password = config.openerp.password
   , hapier_port = config.hapier.port
   , erp_uid = false
-  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login'];
+  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login']
+  , partner_fields = ['name', 'contact_address'];
 
 // First, we'll connect to the 'common' endpoint to log in to OpenERP
 var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrpc/common'});
@@ -116,7 +117,6 @@ function createEmployee(request, reply) {
     var fullName = [request.payload.firstName, request.payload.lastName].join(' ')
     var newUser = new Object;
     if (!request.payload.email) {
-      console.log("Hey, where's my email?");
       var userName = [request.payload.firstName, request.payload.lastName].join('.').toLowerCase();
       console.log(userName);
       newUser.login = userName;
@@ -220,6 +220,18 @@ function getDepartments(request, reply) {
     });
 }
 
+function getProducts(request, reply) {
+    server.helpers.erpReadAll('product.product', [], function (data) {
+        reply(data);
+    });
+}
+
+function getPartners(request, reply) {
+    server.helpers.erpReadAll('res.partner', partner_fields, function (data) {
+        reply(data);
+    });
+}
+
 function getEmployeeCategories(request, reply) {
     server.helpers.erpReadAll('hr.employee.category', [], function (data) {
         reply(data);
@@ -294,6 +306,8 @@ var routes = [
     }},
     { path: '/timesheets', method: 'GET', config: {handler: getTimesheets} },
     { path: '/companies', method: 'GET', config: {handler: getCompanies} },
+    { path: '/products', method: 'GET', config: {handler: getProducts} },
+    { path: '/partners', method: 'GET', config: {handler: getPartners} },
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
