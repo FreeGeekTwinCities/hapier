@@ -234,13 +234,11 @@ function getSales(request, reply) {
 }
 
 function getSale(request, reply) {
-  var order = new Object({});
-  console.log(order);
   server.helpers.erpRead('sale.order', [request.params.id], '', function (data) {
     order = data[0];
     server.helpers.erpRead('sale.order.line', order.order_line, '', function (data) {
-      order.lines = data;
-      reply(order);
+      lines = data;
+      reply({order:order, lines:lines});
     });
   });
 }
