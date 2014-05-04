@@ -4,6 +4,7 @@ port = 8069
 user = admin
 password = admin
 database = test
+pos_pricelist = 1
 
 [hapier]
 port = 3000

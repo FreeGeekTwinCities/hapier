@@ -11,6 +11,7 @@ var erp_host = config.openerp.host
   , erp_db = config.openerp.database
   , erp_user = config.openerp.user
   , erp_password = config.openerp.password
+  , pos_pricelist = config.openerp.pos_pricelist
   , hapier_port = config.hapier.port
   , erp_uid = false
   , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login']
@@ -235,11 +236,39 @@ function getSales(request, reply) {
 
 function getSale(request, reply) {
   server.helpers.erpRead('sale.order', [request.params.id], '', function (data) {
-    order = data[0];
-    server.helpers.erpRead('sale.order.line', order.order_line, '', function (data) {
-      lines = data;
-      reply({order:order, lines:lines});
+    reply(data);
+  });
+}
+
+function getSaleLines(request, reply) {
+  console.log(request.params.id);
+  var search_args = [['order_id', '=', Number(request.params.id)]];
+  console.log(search_args);
+  client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'search', search_args], function (error, recordIds) {
+    console.log(error);
+    console.log(recordIds);
+    server.helpers.erpRead('sale.order.line', recordIds, '', function (data) {
+        reply(data);
     });
+  });
+}
+
+function createSale(request, reply) {
+  console.log(request.payload);
+  var newSale = new Object({});
+  var order = request.payload;
+  console.log(order);
+  newSale.partner_id = order.partner_id;
+  newSale.partner_invoice_id = order.partner_id;
+  newSale.partner_shipping_id = order.partner_id;
+  newSale.pricelist_id = pos_pricelist;
+  console.log(newSale);
+  client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order', 'create', newSale], function (error, recordId) {
+          console.log(error);
+          console.log(recordId);
+          server.helpers.erpRead('sale.order', recordId, '', function (data) {
+            reply(data);
+          });
   });
 }
 
@@ -320,7 +349,9 @@ var routes = [
     { path: '/products', method: 'GET', config: {handler: getProducts} },
     { path: '/partners', method: 'GET', config: {handler: getPartners} },
     { path: '/sales', method: 'GET', config: {handler: getSales} },
+    { path: '/sales', method: 'POST', config: {handler: createSale} },
     { path: '/sales/{id}', method: 'GET', config: {handler: getSale} },
+    { path: '/sales/{id}/lines', method: 'GET', config: {handler: getSaleLines} },
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
