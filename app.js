@@ -35,8 +35,8 @@ var client = xmlrpc.createClient({ host: erp_host, port: erp_port, path: '/xmlrp
 // Finally, we'll configure our API server
 console.log('Starting hapier on port ' + hapier_port);
 var server = Hapi.createServer('0.0.0.0', hapier_port, {
-  'cors': true,
-  'json': {'space': 2}
+  'cors': true
+  // ,'json': {'space': 2}
 });
 
 server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
@@ -307,8 +307,16 @@ function getSaleLines(request, reply) {
 }
 
 function createSaleLine(request, reply) {
+  // Required fields: order_id, product_id, name (how product appears on order/invoice), price_unit (price per item - defaults to 0), product_uom_qty	(units sold - defaults to 1)
   console.log(request.payload);
-  reply('foo');
+  newLine = new Object(request.payload);
+  newLine.order_id = request.params.id;
+  console.log(newLine);
+  client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'create', newLine], function (error, recordId) {
+          server.helpers.erpRead('sale.order.line', recordId, '', function (data) {
+            reply(data);
+          });
+  });
 }
 
 //
@@ -357,7 +365,15 @@ var routes = [
     { path: '/sales', method: 'POST', config: {handler: createSale} },
     { path: '/sales/{id}', method: 'GET', config: {handler: getSale} },
     { path: '/sales/{id}/lines', method: 'GET', config: {handler: getSaleLines} },
-    { path: '/sales/{id}/lines', method: 'POST', config: {handler: createSaleLine} },
+    { path: '/sales/{id}/lines', method: 'POST', config: {
+      handler: createSaleLine,
+      validate: {
+            payload: {
+                product_id: Hapi.types.Number().integer().required(),
+                name: Hapi.types.String().required()
+            }
+        }
+    } },
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
