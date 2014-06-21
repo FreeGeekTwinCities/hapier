@@ -122,7 +122,7 @@ var getCurrentTimesheet = function (employeeId, departmentId, next) {
 
 function createEmployee(request, reply) {
     console.log(request.payload);
-    var fullName = [request.payload.firstName, request.payload.lastName].join(' ')
+    var fullName = [request.payload.firstName, request.payload.lastName].join(' ');
     var newUser = new Object({});
     if (!request.payload.email) {
       var userName = [request.payload.firstName, request.payload.lastName].join('.').toLowerCase();
@@ -301,7 +301,7 @@ function getSaleLines(request, reply) {
     console.log(error);
     console.log(recordIds);
     server.helpers.erpRead('sale.order.line', recordIds, '', function (data) {
-        reply(data);
+      reply(data);
     });
   });
 }
@@ -313,9 +313,9 @@ function createSaleLine(request, reply) {
   newLine.order_id = request.params.id;
   console.log(newLine);
   client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'create', newLine], function (error, recordId) {
-          server.helpers.erpRead('sale.order.line', recordId, '', function (data) {
-            reply(data);
-          });
+    server.helpers.erpRead('sale.order.line', recordId, '', function (data) {
+      reply(data);
+    });
   });
 }
 
@@ -368,12 +368,14 @@ var routes = [
     { path: '/sales/{id}/lines', method: 'POST', config: {
       handler: createSaleLine,
       validate: {
-            payload: {
-                product_id: Hapi.types.Number().integer().required(),
-                name: Hapi.types.String().required()
-            }
+        payload: {
+          product_id: Hapi.types.Number().integer().required(),
+          name: Hapi.types.String().required(),
+          product_uom_qty: Hapi.types.Number(),
+          price_unit: Hapi.types.Number()
         }
-    } },
+      }
+    }},
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
