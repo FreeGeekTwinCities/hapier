@@ -66,6 +66,31 @@ var openerpReadAll = function (model, fields, next) {
 
 server.helper('erpReadAll', openerpReadAll);
 
+function getEmployees(request, reply) {
+    server.helpers.erpReadAll('hr.employee', employee_fields, function (data) {
+        reply(data);
+    });
+
+}
+
+function getTimesheets(request, reply) {
+    server.helpers.erpReadAll('hr_timesheet_sheet.sheet', [], function (data) {
+        reply(data);
+    });
+}
+
+function getEmployee(request, reply) {
+    server.helpers.erpRead('hr.employee', [request.params.id], employee_fields, function (data) {
+        reply(data);
+    });
+}
+
+function getEmployeeCategories(request, reply) {
+  server.helpers.erpReadAll('hr.employee.category', [], function (data) {
+      reply(data);
+  });
+}
+
 var getCurrentTimesheet = function (employeeId, departmentId, next) {
     var today = new Date();
     var today_str = [today.getFullYear(), today.getMonth() + 1, today.getDate()].join('-');
@@ -94,19 +119,6 @@ var getCurrentTimesheet = function (employeeId, departmentId, next) {
         }
     });
 };
-
-function getEmployees(request, reply) {
-    server.helpers.erpReadAll('hr.employee', employee_fields, function (data) {
-        reply(data);
-    });
-
-}
-
-function getEmployee(request, reply) {
-    server.helpers.erpRead('hr.employee', [request.params.id], employee_fields, function (data) {
-        reply(data);
-    });
-}
 
 function createEmployee(request, reply) {
     console.log(request.payload);
@@ -198,9 +210,31 @@ function signOutEmployee(request, reply) {
     });
 }
 
-function getTimesheets(request, reply) {
-    server.helpers.erpReadAll('hr_timesheet_sheet.sheet', [], function (data) {
-        reply(data);
+function getEmployeeAttendance(request, reply) {
+    var employeeId = Number(request.params.id);
+    var attendance_ids = [];
+    var response = new Object({});
+    console.log(employeeId);
+    var search_args = [['employee_id', '=', employeeId]];
+    //var search_args = '';
+    console.log(search_args);
+    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', search_args], function (error, recordIds) {
+        console.log(error);
+        // If there's already a timesheet, return that timesheet's ID
+        console.log(recordIds);
+        server.helpers.erpRead('hr_timesheet_sheet.sheet', recordIds, '', function (data) {
+            response.timesheets = data;
+            for (var i in data) {
+                attendance_ids = attendance_ids.concat(data[i].attendances_ids);
+                console.log(attendance_ids);
+            }
+            server.helpers.erpRead('hr.attendance', attendance_ids, '', function (data) {
+                console.log(data);
+                response.attendances = data;
+                reply(response);
+            });
+            
+        });
     });
 }
 
@@ -240,19 +274,6 @@ function getSale(request, reply) {
   });
 }
 
-function getSaleLines(request, reply) {
-  console.log(request.params.id);
-  var search_args = [['order_id', '=', Number(request.params.id)]];
-  console.log(search_args);
-  client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'search', search_args], function (error, recordIds) {
-    console.log(error);
-    console.log(recordIds);
-    server.helpers.erpRead('sale.order.line', recordIds, '', function (data) {
-        reply(data);
-    });
-  });
-}
-
 function createSale(request, reply) {
   console.log(request.payload);
   var newSale = new Object({});
@@ -272,38 +293,22 @@ function createSale(request, reply) {
   });
 }
 
-function getEmployeeCategories(request, reply) {
-  server.helpers.erpReadAll('hr.employee.category', [], function (data) {
-      reply(data);
+function getSaleLines(request, reply) {
+  console.log(request.params.id);
+  var search_args = [['order_id', '=', Number(request.params.id)]];
+  console.log(search_args);
+  client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'search', search_args], function (error, recordIds) {
+    console.log(error);
+    console.log(recordIds);
+    server.helpers.erpRead('sale.order.line', recordIds, '', function (data) {
+        reply(data);
+    });
   });
 }
 
-function getEmployeeAttendance(request, reply) {
-    var employeeId = Number(request.params.id);
-    var attendance_ids = [];
-    var response = new Object({});
-    console.log(employeeId);
-    var search_args = [['employee_id', '=', employeeId]];
-    //var search_args = '';
-    console.log(search_args);
-    client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'search', search_args], function (error, recordIds) {
-        console.log(error);
-        // If there's already a timesheet, return that timesheet's ID
-        console.log(recordIds);
-        server.helpers.erpRead('hr_timesheet_sheet.sheet', recordIds, '', function (data) {
-            response.timesheets = data;
-            for (var i in data) {
-                attendance_ids = attendance_ids.concat(data[i].attendances_ids);
-                console.log(attendance_ids);
-            }
-            server.helpers.erpRead('hr.attendance', attendance_ids, '', function (data) {
-                console.log(data);
-                response.attendances = data;
-                reply(response);
-            });
-            
-        });
-    });
+function createSaleLine(request, reply) {
+  console.log(request.payload);
+  reply('foo');
 }
 
 //
@@ -352,6 +357,7 @@ var routes = [
     { path: '/sales', method: 'POST', config: {handler: createSale} },
     { path: '/sales/{id}', method: 'GET', config: {handler: getSale} },
     { path: '/sales/{id}/lines', method: 'GET', config: {handler: getSaleLines} },
+    { path: '/sales/{id}/lines', method: 'POST', config: {handler: createSaleLine} },
     { path: '/departments', method: 'GET', config: {handler: getDepartments } }
 ];
 
