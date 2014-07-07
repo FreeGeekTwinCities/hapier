@@ -108,6 +108,7 @@ var getCurrentTimesheet = function (employeeId, departmentId, next) {
         } else {
             var newTimesheet = new Object({});
             newTimesheet.date_from = today_str;
+            newTimesheet.date_to = today_str;
             newTimesheet.employee_id = employeeId;
             newTimesheet.department_id = departmentId;
             client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'create', newTimesheet], function (error, recordId) {
