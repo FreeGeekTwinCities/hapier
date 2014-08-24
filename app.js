@@ -1,4 +1,5 @@
 var Hapi = require('hapi')
+  , Joi = require('joi')
   , xmlrpc = require('xmlrpc')
   , ini = require('ini')
   , fs = require('fs');
@@ -39,13 +40,6 @@ var server = Hapi.createServer('0.0.0.0', hapier_port, {
   // ,'json': {'space': 2}
 });
 
-server.pack.require({ lout: { endpoint: '/docs' } }, function (err) {
-
-    if (err) {
-        console.log('Failed loading plugins');
-    }
-});
-
 var openerpRead = function (model, recordIds, fields, next) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, model, 'read', recordIds, fields], function (error, data) {
         //console.log(data);
@@ -53,40 +47,40 @@ var openerpRead = function (model, recordIds, fields, next) {
     });
 };
 
-server.helper('erpRead', openerpRead);
+server.method('erpRead', openerpRead);
 
 var openerpReadAll = function (model, fields, next) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, model, 'search', ''], function (error, recordIds) {
         console.log(error);
-        server.helpers.erpRead(model, recordIds, fields, function (data) {
+        server.methods.erpRead(model, recordIds, fields, function (data) {
             next(data);
         });
     });
 };
 
-server.helper('erpReadAll', openerpReadAll);
+server.method('erpReadAll', openerpReadAll);
 
 function getEmployees(request, reply) {
-    server.helpers.erpReadAll('hr.employee', employee_fields, function (data) {
+    server.methods.erpReadAll('hr.employee', employee_fields, function (data) {
         reply(data);
     });
 
 }
 
 function getTimesheets(request, reply) {
-    server.helpers.erpReadAll('hr_timesheet_sheet.sheet', [], function (data) {
+    server.methods.erpReadAll('hr_timesheet_sheet.sheet', [], function (data) {
         reply(data);
     });
 }
 
 function getEmployee(request, reply) {
-    server.helpers.erpRead('hr.employee', [request.params.id], employee_fields, function (data) {
+    server.methods.erpRead('hr.employee', [request.params.id], employee_fields, function (data) {
         reply(data);
     });
 }
 
 function getEmployeeCategories(request, reply) {
-  server.helpers.erpReadAll('hr.employee.category', [], function (data) {
+  server.methods.erpReadAll('hr.employee.category', [], function (data) {
       reply(data);
   });
 }
@@ -101,7 +95,7 @@ var getCurrentTimesheet = function (employeeId, departmentId, next) {
         console.log(error);
         // If there's already a timesheet, return that timesheet's ID
         if (recordIds.length > 0) {
-          server.helpers.erpRead('hr_timesheet_sheet.sheet', [recordIds[0]], '', function (data) {
+          server.methods.erpRead('hr_timesheet_sheet.sheet', [recordIds[0]], '', function (data) {
             next(data[0]);
           });
         // Otherwise, create a new timesheet for the specified employee ID for today's date, then return the new timesheet's ID
@@ -113,7 +107,7 @@ var getCurrentTimesheet = function (employeeId, departmentId, next) {
             newTimesheet.department_id = departmentId;
             client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr_timesheet_sheet.sheet', 'create', newTimesheet], function (error, recordId) {
                 console.log(error);
-                server.helpers.erpRead('hr_timesheet_sheet.sheet', recordId, '', function (data) {
+                server.methods.erpRead('hr_timesheet_sheet.sheet', recordId, '', function (data) {
                   next(data);
                 });
             });
@@ -137,7 +131,7 @@ function createEmployee(request, reply) {
     client.methodCall('execute', [erp_db, erp_uid, erp_password, 'res.users', 'create', newUser], function (error, userID) {
         console.log(error);
         console.log(userID);
-        server.helpers.erpRead('res.users', userID, '', function (data) {
+        server.methods.erpRead('res.users', userID, '', function (data) {
           console.log(data);
           var newEmployee = new Object({});
           newEmployee.name = data.name;
@@ -146,7 +140,7 @@ function createEmployee(request, reply) {
           newEmployee.user_id = data.id;
           client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.employee', 'create', newEmployee], function (error, employeeID) {
               console.log(error);
-              server.helpers.erpRead('hr.employee', employeeID, employee_fields, function (data) {
+              server.methods.erpRead('hr.employee', employeeID, employee_fields, function (data) {
                 console.log(data);
                 reply(data);
               });
@@ -177,7 +171,7 @@ function signInEmployee(request, reply) {
         console.log(newAttendance);
         client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.attendance', 'create', newAttendance], function (error, recordId) {
                 console.log(error);
-                server.helpers.erpRead('hr.addendance', recordId, '', function (data) {
+                server.methods.erpRead('hr.addendance', recordId, '', function (data) {
                   reply(data);
                 });
         });
@@ -204,7 +198,7 @@ function signOutEmployee(request, reply) {
         console.log(newAttendance);
         client.methodCall('execute', [erp_db, erp_uid, erp_password, 'hr.attendance', 'create', newAttendance], function (error, recordId) {
                 console.log(error);
-                server.helpers.erpRead('hr.addendance', recordId, '', function (data) {
+                server.methods.erpRead('hr.addendance', recordId, '', function (data) {
                   reply(data);
                 });
         });
@@ -223,13 +217,13 @@ function getEmployeeAttendance(request, reply) {
         console.log(error);
         // If there's already a timesheet, return that timesheet's ID
         console.log(recordIds);
-        server.helpers.erpRead('hr_timesheet_sheet.sheet', recordIds, '', function (data) {
+        server.methods.erpRead('hr_timesheet_sheet.sheet', recordIds, '', function (data) {
             response.timesheets = data;
             for (var i in data) {
                 attendance_ids = attendance_ids.concat(data[i].attendances_ids);
                 console.log(attendance_ids);
             }
-            server.helpers.erpRead('hr.attendance', attendance_ids, '', function (data) {
+            server.methods.erpRead('hr.attendance', attendance_ids, '', function (data) {
                 console.log(data);
                 response.attendances = data;
                 reply(response);
@@ -240,37 +234,37 @@ function getEmployeeAttendance(request, reply) {
 }
 
 function getCompanies(request, reply) {
-    server.helpers.erpReadAll('res.company', [], function (data) {
+    server.methods.erpReadAll('res.company', [], function (data) {
         reply(data);
     });
 }
 
 function getDepartments(request, reply) {
-    server.helpers.erpReadAll('hr.department', [], function (data) {
+    server.methods.erpReadAll('hr.department', [], function (data) {
         reply(data);
     });
 }
 
 function getProducts(request, reply) {
-  server.helpers.erpReadAll('product.product', product_fields, function (data) {
+  server.methods.erpReadAll('product.product', product_fields, function (data) {
         reply(data);
   });
 }
 
 function getPartners(request, reply) {
-  server.helpers.erpReadAll('res.partner', partner_fields, function (data) {
+  server.methods.erpReadAll('res.partner', partner_fields, function (data) {
       reply(data);
   });
 }
 
 function getSales(request, reply) {
-  server.helpers.erpReadAll('sale.order', '', function (data) {
+  server.methods.erpReadAll('sale.order', '', function (data) {
       reply(data);
   });
 }
 
 function getSale(request, reply) {
-  server.helpers.erpRead('sale.order', [request.params.id], '', function (data) {
+  server.methods.erpRead('sale.order', [request.params.id], '', function (data) {
     reply(data);
   });
 }
@@ -288,7 +282,7 @@ function createSale(request, reply) {
   client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order', 'create', newSale], function (error, recordId) {
           console.log(error);
           console.log(recordId);
-          server.helpers.erpRead('sale.order', recordId, '', function (data) {
+          server.methods.erpRead('sale.order', recordId, '', function (data) {
             reply(data);
           });
   });
@@ -301,7 +295,7 @@ function getSaleLines(request, reply) {
   client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'search', search_args], function (error, recordIds) {
     console.log(error);
     console.log(recordIds);
-    server.helpers.erpRead('sale.order.line', recordIds, '', function (data) {
+    server.methods.erpRead('sale.order.line', recordIds, '', function (data) {
       reply(data);
     });
   });
@@ -314,7 +308,7 @@ function createSaleLine(request, reply) {
   newLine.order_id = request.params.id;
   console.log(newLine);
   client.methodCall('execute', [erp_db, erp_uid, erp_password, 'sale.order.line', 'create', newLine], function (error, recordId) {
-    server.helpers.erpRead('sale.order.line', recordId, '', function (data) {
+    server.methods.erpRead('sale.order.line', recordId, '', function (data) {
       reply(data);
     });
   });
@@ -332,10 +326,10 @@ var routes = [
         handler: createEmployee,
         validate: {
             payload: {
-                firstName: Hapi.types.String().required(),
-                lastName: Hapi.types.String().required(),
-                email: Hapi.types.String().email().optional(),
-                phone: Hapi.types.String().optional()
+                firstName: Joi.string().required(),
+                lastName: Joi.string().required(),
+                email: Joi.string().email().optional(),
+                phone: Joi.string().optional()
             }
         }
     }},
@@ -345,8 +339,8 @@ var routes = [
         handler: signInEmployee,
         validate: {
             payload: {
-                employeeId: Hapi.types.Number().integer(),
-                departmentId: Hapi.types.Number().integer()
+                employeeId: Joi.number().integer(),
+                departmentId: Joi.number().integer()
             }
         }
     }},
@@ -354,7 +348,7 @@ var routes = [
         handler: signOutEmployee,
         validate: {
             payload: {
-                employeeId: Hapi.types.Number().integer()
+                employeeId: Joi.number().integer()
             }
         }
     }},
@@ -370,10 +364,10 @@ var routes = [
       handler: createSaleLine,
       validate: {
         payload: {
-          product_id: Hapi.types.Number().integer().required(),
-          name: Hapi.types.String().required(),
-          product_uom_qty: Hapi.types.Number(),
-          price_unit: Hapi.types.Number()
+          product_id: Joi.number().integer().required(),
+          name: Joi.string().required(),
+          product_uom_qty: Joi.number(),
+          price_unit: Joi.number()
         }
       }
     }},
@@ -382,4 +376,6 @@ var routes = [
 
 server.route(routes);
 
-server.start();
+server.pack.register({ plugin: require('lout') }, function() {
+    server.start();
+});

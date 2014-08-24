@@ -13,10 +13,10 @@
     "url": "http://github.com/bdunnette/hapier.git"
   },
   "dependencies": {
-    "hapi": "^2.6.0",
-    "handlebars": "~1.3.0",
-    "xmlrpc": "~1.2.0",
-    "ini": "~1.1.0",
-    "lout": "^2.1.1"
+    "hapi": "^6.6.0",
+    "ini": "^1.2.1",
+    "joi": "^4.6.2",
+    "lout": "^5.0.2",
+    "xmlrpc": "^1.2.0"
   }
 }
