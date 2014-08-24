@@ -8,3 +8,11 @@ pos_pricelist = 1
 
 [hapier]
 port = 3000
+
+[couchdb_log]
+db = logs
+host = localhost
+port = 5984
+# Set user and password if your CouchDB requires it
+#user = admin
+#password = password

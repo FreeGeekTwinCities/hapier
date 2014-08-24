@@ -13,6 +13,11 @@ var erp_host = config.openerp.host
   , erp_user = config.openerp.user
   , erp_password = config.openerp.password
   , pos_pricelist = config.openerp.pos_pricelist
+  , couchDb = config.couchdb_log.db
+  , couchHost = config.couchdb_log.host
+  , couchPort = config.couchdb_log.port || 5984
+  , couchUser = config.couchdb_log.user
+  , couchPass = config.couchdb_log.password
   , hapier_port = config.hapier.port
   , erp_uid = false
   , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login']
@@ -376,15 +381,22 @@ var routes = [
 
 server.route(routes);
 
+if (couchUser && couchPass) {
+  var couchUrl = "http://" + couchUser + ":" + couchPass + "@" + couchHost + ":" + couchPort  + "/" + couchDb + "/";
+} else {
+  var couchUrl = "http://" + couchHost + ":" + couchPort  + "/" + couchDb + "/";
+}
+
 var logOptions = {
   maxLogSize: 1024 * 1024 * 10,
   schemaName: 'hapier',
     subscribers: {
-        'console':                         ['ops', 'request', 'log', 'error'],
-        '/tmp/logs/':                      ['ops', 'request', 'log', 'error'],
-        'http://localhost:5984/logs/':['ops','request','log','error']
+        'console':    ['ops', 'request', 'log', 'error'],
+        '/tmp/logs/': ['ops', 'request', 'log', 'error']
     }
 };
+
+logOptions.subscribers[couchUrl] = ['ops','request','log','error'];
 
 server.pack.register({
     plugin: require('good'),
