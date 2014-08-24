@@ -376,6 +376,26 @@ var routes = [
 
 server.route(routes);
 
+var logOptions = {
+  maxLogSize: 1024 * 1024 * 10,
+  schemaName: 'hapier',
+    subscribers: {
+        'console':                         ['ops', 'request', 'log', 'error'],
+        '/tmp/logs/':                      ['ops', 'request', 'log', 'error'],
+        'http://localhost:5984/logs/':['ops','request','log','error']
+    }
+};
+
+server.pack.register({
+    plugin: require('good'),
+    options: logOptions
+}, function (err) {
+   if (err) {
+      console.log(err);
+      return;
+   }
+});
+
 server.pack.register({ plugin: require('lout') }, function() {
     server.start();
 });

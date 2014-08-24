@@ -13,6 +13,7 @@
     "url": "http://github.com/bdunnette/hapier.git"
   },
   "dependencies": {
+    "good": "^2.2.3",
     "hapi": "^6.6.0",
     "ini": "^1.2.1",
     "joi": "^4.6.2",
