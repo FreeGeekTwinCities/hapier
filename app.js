@@ -2,7 +2,7 @@ var Hapi = require('hapi')
   , Joi = require('joi')
   , xmlrpc = require('xmlrpc')
   , ini = require('ini')
-  , fs = require('fs');
+  , fs = require('fs')
   , path = require('path');
 
 var config = ini.parse(fs.readFileSync(path.resolve(__dirname, './config.ini'), 'utf-8'));
