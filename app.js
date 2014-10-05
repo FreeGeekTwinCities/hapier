@@ -3,9 +3,11 @@ var Hapi = require('hapi')
   , xmlrpc = require('xmlrpc')
   , ini = require('ini')
   , fs = require('fs');
+  , path = require('path');
 
-var config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
-//console.log(config);
+var config = ini.parse(fs.readFileSync(path.resolve(__dirname, './config.ini'), 'utf-8'));
+console.log("Reading config:");
+console.log(config);
 
 var erp_host = config.openerp.host
   , erp_port = config.openerp.port
