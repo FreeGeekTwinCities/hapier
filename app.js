@@ -22,7 +22,7 @@ var erp_host = config.openerp.host
   , couchPass = config.couchdb_log.password
   , hapier_port = config.hapier.port
   , erp_uid = false
-  , employee_fields = ['name', 'id', 'state', 'image_small', 'category_ids', 'login']
+  , employee_fields = ['name', 'id', 'state', 'category_ids', 'login']
   , partner_fields = ['id', 'name', 'contact_address', 'email', 'phone']
   , product_fields = ['id', 'name', 'active', 'list_price'];
 
@@ -32,7 +32,7 @@ var client_common = xmlrpc.createClient({ host: erp_host, port: erp_port, path: 
 client_common.methodCall('login', [erp_db, erp_user, erp_password], function (error, value) {
     if (error) { console.log(error); }
     else {
-        console.log('Connected to OpenERP as user #' + value);
+        console.log('Connected to OpenERP as user #' + erp_user);
         erp_uid = value;
     }
 });
@@ -154,7 +154,7 @@ function createEmployee(request, reply) {
           });
         });
     });
-     
+
 }
 
 function signInEmployee(request, reply) {
@@ -235,7 +235,7 @@ function getEmployeeAttendance(request, reply) {
                 response.attendances = data;
                 reply(response);
             });
-            
+
         });
     });
 }
